@@ -1,29 +1,120 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { FontAwesome } from '@expo/vector-icons';
+import { Slot, useRouter } from 'expo-router';
+import React, { useRef } from 'react';
+import {
+  DrawerLayoutAndroid,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+export default function DrawerLayout() {
+  const drawer = useRef<DrawerLayoutAndroid>(null);
+  const router = useRouter();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const navigationView = () => (
+    <View style={styles.drawerContent}>
+      <Text style={styles.drawerTitle}>Menu</Text>
+      <TouchableOpacity
+        style={styles.drawerButton}
+        onPress={() => {
+          router.push('/');
+          drawer.current?.closeDrawer();
+        }}
+      >
+        <Text>Início</Text>
+      </TouchableOpacity>
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
+      <TouchableOpacity
+        style={styles.drawerButton}
+        onPress={() => {
+          router.push('/menu/tecnicos/listar_tecnicos');
+          drawer.current?.closeDrawer();
+        }}
+      >
+        <Text>Listagem de Técnicos</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.drawerButton}
+        onPress={() => {
+          router.push('/menu/tecnicos/cadastrar_tecnicos');
+          drawer.current?.closeDrawer();
+        }}
+      >
+        <Text>Cadastro de Técnicos</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.drawerButton}
+        onPress={() => {
+          router.push('/menu/alocacao/registrar_alocacao');
+          drawer.current?.closeDrawer();
+        }}
+      >
+        <Text>Alocar horas</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <DrawerLayoutAndroid
+      ref={drawer}
+      drawerWidth={300}
+      drawerPosition="left"
+      renderNavigationView={navigationView}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatusBar/>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>CapacityX</Text>
+          <TouchableOpacity onPress={() => drawer.current?.openDrawer()}>
+            <FontAwesome name="bars" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+
+        <View style={{ flex: 1 }}>
+          <Slot />
+        </View>
+      </SafeAreaView>
+    </DrawerLayoutAndroid>
   );
 }
+
+const styles = StyleSheet.create({
+  drawerContent: {
+    flex: 1,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    backgroundColor: '#eee',
+  },
+  drawerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  drawerButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#ccc',
+    borderRadius: 5,
+  },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#333',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+});

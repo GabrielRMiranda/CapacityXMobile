@@ -1,12 +1,11 @@
 import React from 'react';
-import { Text, View, StyleSheet, Platform, SafeAreaView } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text} from 'react-native';
 
-export default function HomeScreen() {
+export default function home() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>
-        CapacityX
-      </Text>
+      <StatusBar></StatusBar>
+      <Text>Tela Inicial</Text>
     </SafeAreaView>
   );
 }
@@ -15,9 +14,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1, 
     backgroundColor: '#fff', 
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop : 50
   },
+
   title: {
     color: 'black',
     fontSize: 24,
