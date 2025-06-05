@@ -1,76 +1,150 @@
-import React, { useState } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import React, { useEffect, useState } from 'react';
 import {
+  Button,
+  Platform,
+  Pressable,
   SafeAreaView,
+  ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TextInput,
-  Button,
-  StyleSheet,
-  View,
-  Alert,
-  ScrollView,
+  View
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { MaskedTextInput } from 'react-native-mask-text';
-import { categorias, usuarios } from '@/data';
 
 export default function CadastrarTecnicos() {
+  const [usuarios, setUsuarios] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+
+  const [dataInicio, setDataInicio] = useState<Date | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [dataISO, setDataISO] = useState<string>('');
+
+  const [dataFim, setDataFim] = useState<Date | null>(null);
+  const [showPickerFim, setShowPickerFim] = useState(false);
+  const [dataISOFim, setDataISOFim] = useState<string>('');
+
   const [idUsuario, setIdUsuario] = useState<number | null>(null);
   const [idCategoria, setIdCategoria] = useState<number | null>(null);
   const [knowHow, setKnowHow] = useState('');
   const [status, setStatus] = useState(true);
-  const [inicioVigencia, setInicioVigencia] = useState('');
-  const [fimVigencia, setFimVigencia] = useState('');
 
-  const nomeUsuarioSelecionado =
-    usuarios.find((u) => u.id === idUsuario)?.nome || '';
+  useEffect(() => {
+    consultaUsuario();
+    consultaCategoria();
+  }, []);
 
-  const descricaoCategoriaSelecionada =
-    categorias.find((c) => c.id === idCategoria)?.descricao || '';
+  const onChange = (_event: any, selectedDate?: Date) => {
+    setShowPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDataInicio(selectedDate);
+      setDataISO(selectedDate.toISOString());
+    }
+  };
 
-  function validarData(data: string) {
-    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-    return regex.test(data);
-  }
+  const onChangeFim = (_event: any, selectedDate?: Date) => {
+    setShowPickerFim(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDataFim(selectedDate);
+      setDataISOFim(selectedDate.toISOString());
+    }
+  };
+
+  const consultaUsuario = async () => {
+    try {
+      let response = await fetch('http://100.71.234.30:3000/usuario', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        alert('Erro: Usuário não encontrado - ' + response.status);
+        return;
+      }
+
+      let usuario = await response.json();
+      setUsuarios(usuario);
+    } catch (error) {
+      console.error('Erro capturado: ', error);
+    }
+  };
+
+  const consultaCategoria = async () => {
+    try {
+      let response = await fetch('http://100.71.234.30:3000/categoria', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        alert('Erro: Categoria não encontrado - ' + response.status);
+        return;
+      }
+
+      let categoria = await response.json();
+      setCategorias(categoria);
+    } catch (error) {
+      console.error('Erro capturado: ', error);
+    }
+  };
+
+  let objetoTecnicoData = {
+    id_usuario: idUsuario,
+    id_categoria: idCategoria,
+    know_how: Number(knowHow),
+    inicio_vigencia: dataISO,
+    fim_vigencia: dataISOFim || null,
+    status: status
+  };
+
+  const cadastraTecnico = async () => {
+    try {
+      let request = await fetch('http://100.71.234.30:3000/tecnico', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(objetoTecnicoData)
+      });
+
+      if (!request.ok) {
+        alert('Falhou: ' + request.status);
+      }
+
+      console.log(JSON.stringify(objetoTecnicoData));
+
+      let json = await request.json();
+
+      console.log(json);
+
+      limparFormulario();
+
+      return json;
+    } catch (error) {
+      console.error('Erro capturado: ', error);
+      return null;
+    }
+  };
 
   function limparFormulario() {
     setIdUsuario(null);
     setIdCategoria(null);
     setKnowHow('');
     setStatus(true);
-    setInicioVigencia('');
-    setFimVigencia('');
+    setDataInicio(null);
+    setDataISO('');
+    setDataFim(null);
+    setDataISOFim('');
   }
 
   function handleSubmit() {
-    if (
-      !idUsuario ||
-      !idCategoria ||
-      !knowHow ||
-      !inicioVigencia ||
-      !validarData(inicioVigencia) ||
-      (fimVigencia && !validarData(fimVigencia))
-    ) {
-      Alert.alert('Erro', 'Preencha todos os campos corretamente');
-      return;
-    }
-
-    const tecnico = {
-      id_usuario: idUsuario,
-      id_categoria: idCategoria,
-      know_how: parseFloat(knowHow),
-      status,
-      inicio_vigencia: formatarDataISO(inicioVigencia),
-      fim_vigencia: fimVigencia ? formatarDataISO(fimVigencia) : null,
-    };
-
-    Alert.alert('Dados enviados', JSON.stringify(tecnico, null, 2));
-    limparFormulario();
-  }
-
-  function formatarDataISO(data: string) {
-    const [dd, mm, yyyy] = data.split('/');
-    return `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+    cadastraTecnico();
   }
 
   return (
@@ -86,17 +160,14 @@ export default function CadastrarTecnicos() {
           style={styles.picker}
         >
           <Picker.Item label="Selecione um usuário" value={null} />
-          {usuarios.map((user) => (
-            <Picker.Item
-              key={user.id}
-              label={`${user.nome} (${user.id})`}
-              value={user.id}
-            />
-          ))}
+          {usuarios.length > 0 && usuarios.map((user: any) => (
+              <Picker.Item
+                key={user.id}
+                label={`${user.nome}`}
+                value={user.id}
+              />
+            ))}
         </Picker>
-        {nomeUsuarioSelecionado ? (
-          <Text style={styles.infoText}>Selecionado: {nomeUsuarioSelecionado}</Text>
-        ) : null}
 
         <Text style={styles.label}>Categoria</Text>
         <Picker
@@ -105,19 +176,14 @@ export default function CadastrarTecnicos() {
           style={styles.picker}
         >
           <Picker.Item label="Selecione uma categoria" value={null} />
-          {categorias.map((cat) => (
+          {categorias.length > 0 && categorias.map((categoria: any) => (
             <Picker.Item
-              key={cat.id}
-              label={`${cat.descricao} (${cat.id})`}
-              value={cat.id}
-            />
+              key={categoria.id}
+              label={`${categoria.descricao}`}
+              value={categoria.id}
+            />  
           ))}
         </Picker>
-        {descricaoCategoriaSelecionada ? (
-          <Text style={styles.infoText}>
-            Selecionado: {descricaoCategoriaSelecionada}
-          </Text>
-        ) : null}
 
         <Text style={styles.label}>Know How</Text>
         <TextInput
@@ -138,25 +204,57 @@ export default function CadastrarTecnicos() {
           <Picker.Item label="Inativo" value={false} />
         </Picker>
 
-        <Text style={styles.label}>Início Vigência (dd/mm/aaaa):</Text>
-        <MaskedTextInput
-          mask="99/99/9999"
-          onChangeText={setInicioVigencia}
-          value={inicioVigencia}
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="dd/mm/aaaa"
-        />
+        <View style={{ marginTop: 15 }}>
+          <Text style={{ marginBottom: 6 }}>Data de Início:</Text>
+          <Pressable onPress={() => setShowPicker(true)}>
+            <TextInput
+              placeholder="Selecione a data"
+              value={dataInicio ? dataInicio.toLocaleDateString('pt-BR') : ''}
+              editable={false}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                borderRadius: 4,
+              }}
+            />
+          </Pressable>
+          {showPicker && (
+            <DateTimePicker
+              value={dataInicio || new Date()}
+              mode="date"
+              display="default"
+              onChange={onChange}
+              locale="pt-BR"
+            />
+          )}
+        </View>
 
-        <Text style={styles.label}>Fim Vigência (opcional):</Text>
-        <MaskedTextInput
-          mask="99/99/9999"
-          onChangeText={setFimVigencia}
-          value={fimVigencia}
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="dd/mm/aaaa"
-        />
+        <View style={{ marginTop: 15 }}>
+          <Text style={{ marginBottom: 6 }}>Data de Fim:</Text>
+          <Pressable onPress={() => setShowPickerFim(true)}>
+            <TextInput
+              placeholder="Selecione a data"
+              value={dataFim ? dataFim.toLocaleDateString('pt-BR') : ''}
+              editable={false}
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                borderRadius: 4,
+              }}
+            />
+          </Pressable>
+          {showPickerFim && (
+            <DateTimePicker
+              value={dataFim || new Date()}
+              mode="date"
+              display="default"
+              onChange={onChangeFim}
+              locale="pt-BR"
+            />
+          )}
+        </View>
 
         <View style={styles.button}>
           <Button title="Salvar Técnico" onPress={handleSubmit} />
@@ -193,10 +291,6 @@ const styles = StyleSheet.create({
     padding: 8,
     marginTop: 5,
     borderRadius: 4,
-  },
-  infoText: {
-    fontStyle: 'italic',
-    marginTop: 3,
   },
   button: {
     marginTop: 30,
